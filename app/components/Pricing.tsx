@@ -43,10 +43,10 @@ interface PricingResult {
     baseAnnual: number;
     addonsAnnual: number;
     subscriptionAnnual: number;
-    subscriptionMonthly: number;
     implementation: number;
-    firstYearTotal: number;
-    altPeriodAmount: number;
+    firstYearAnnual: number;
+    mainAmount: number;
+    altAmount: number;
 }
 
 function calcPricing(
@@ -59,20 +59,19 @@ function calcPricing(
     const addonsRate = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + a.rate, 0);
     const addonsAnnual = Math.round(baseAnnual * addonsRate);
     const subscriptionAnnual = baseAnnual + addonsAnnual;
-    const subscriptionMonthly = Math.round((subscriptionAnnual * MONTHLY_SURCHARGE) / 12);
     const implementation = nodes * IMPL_COST_PER_NODE;
 
-    // firstYearTotal and altPeriodAmount depend on billing mode:
-    // annual selected → primary = annual, alt = annual/12
-    // monthly selected → primary = monthly×12 (with surcharge), alt = monthly
-    const firstYearTotal = billing === "annual"
+    // firstYearAnnual: total first year in €/year (with surcharge if monthly billing)
+    const firstYearAnnual = billing === "annual"
         ? subscriptionAnnual + implementation
         : Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation;
-    const altPeriodAmount = billing === "annual"
-        ? Math.round(subscriptionAnnual / 12)
-        : subscriptionMonthly;
 
-    return { baseAnnual, addonsAnnual, subscriptionAnnual, subscriptionMonthly, implementation, firstYearTotal, altPeriodAmount };
+    // mainAmount: shown big (period selected). altAmount: shown small (other period).
+    // Symmetric within mode: main × 12 = alt (monthly), main / 12 = alt (annual).
+    const mainAmount = billing === "annual" ? firstYearAnnual : Math.round(firstYearAnnual / 12);
+    const altAmount  = billing === "annual" ? Math.round(firstYearAnnual / 12) : firstYearAnnual;
+
+    return { baseAnnual, addonsAnnual, subscriptionAnnual, implementation, firstYearAnnual, mainAmount, altAmount };
 }
 
 function fmt(n: number) {
@@ -94,36 +93,34 @@ function buildPrefillMessage(
             ? activeList.map(a => texts.es[a.labelKey]).join(", ")
             : "Solo visualización base";
         const billingLabel = billing === "annual" ? "Anual" : "Mensual";
-        const primaryAmount = billing === "annual"
-            ? `${fmt(result.firstYearTotal)} €/año (${fmt(result.altPeriodAmount)} €/mes)`
-            : `${fmt(result.altPeriodAmount)} €/mes (${fmt(result.firstYearTotal)} €/año)`;
+        const mainUnit = billing === "annual" ? "€/año" : "€/mes";
+        const altUnit  = billing === "annual" ? "€/mes" : "€/año";
         return [
             "Solicitud de presupuesto ForNet:",
             `- Sensores: ${tier} sensores`,
             `- Facturación: ${billingLabel}`,
             `- Módulos activos: ${addonsLine}`,
             `- Nodos / IPs: ${nodes}`,
-            `- Coste suscripción: ${primaryAmount}`,
-            `- Implementación (único): ${fmt(result.implementation)} €`,
-            `- Total primer año estimado: ${fmt(result.firstYearTotal)} €`,
+            `- Coste total: ${fmt(result.mainAmount)} ${mainUnit} (${fmt(result.altAmount)} ${altUnit})`,
+            `- Implementación incluida: ${fmt(result.implementation)} €`,
+            `- Total primer año estimado: ${fmt(result.firstYearAnnual)} €`,
         ].join("\n");
     } else {
         const addonsLine = activeList.length
             ? activeList.map(a => texts.en[a.labelKey]).join(", ")
             : "Base visualization only";
         const billingLabel = billing === "annual" ? "Annual" : "Monthly";
-        const primaryAmount = billing === "annual"
-            ? `${fmt(result.firstYearTotal)} €/year (${fmt(result.altPeriodAmount)} €/month)`
-            : `${fmt(result.altPeriodAmount)} €/month (${fmt(result.firstYearTotal)} €/year)`;
+        const mainUnit = billing === "annual" ? "€/year" : "€/month";
+        const altUnit  = billing === "annual" ? "€/month" : "€/year";
         return [
             "ForNet pricing request:",
             `- Sensors: ${tier} sensors`,
             `- Billing: ${billingLabel}`,
             `- Active modules: ${addonsLine}`,
             `- Nodes / IPs: ${nodes}`,
-            `- Subscription cost: ${primaryAmount}`,
-            `- Implementation (one-time): ${fmt(result.implementation)} €`,
-            `- Estimated first year total: ${fmt(result.firstYearTotal)} €`,
+            `- Total cost: ${fmt(result.mainAmount)} ${mainUnit} (${fmt(result.altAmount)} ${altUnit})`,
+            `- Implementation included: ${fmt(result.implementation)} €`,
+            `- Estimated first year total: ${fmt(result.firstYearAnnual)} €`,
         ].join("\n");
     }
 }
@@ -275,7 +272,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                                     <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label}</span>
                                     <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--orange)" }}>
-                                        {billing === "annual" ? `${fmt(result.firstYearTotal)} €/año` : `${fmt(result.altPeriodAmount)} €/mes`}
+                                        {fmt(result.mainAmount)} {billing === "annual" ? "€/año" : "€/mes"}
                                     </span>
                                 </div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -283,7 +280,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                         {billing === "annual" ? t.pricing_billing_monthly : t.pricing_billing_annual}
                                     </span>
                                     <span style={{ fontSize: "0.95rem", fontWeight: 500, color: "#888" }}>
-                                        {billing === "annual" ? `${fmt(result.altPeriodAmount)} €/mes` : `${fmt(result.firstYearTotal)} €/año`}
+                                        {fmt(result.altAmount)} {billing === "annual" ? "€/mes" : "€/año"}
                                     </span>
                                 </div>
                             </div>
