@@ -91,6 +91,7 @@
 .header-nav {
   display: flex;
   gap: 40px;
+  justify-self: center;
 }
 
 .mobile-menu-toggle {

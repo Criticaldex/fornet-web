@@ -69,11 +69,6 @@ export default function Header() {
 
                     <nav
                         className="header-nav"
-                        style={{
-                            position: "absolute",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                        }}
                     >
                         {links.map(([href, label]) => (
                             <button
