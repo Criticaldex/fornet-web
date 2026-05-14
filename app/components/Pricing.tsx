@@ -43,14 +43,15 @@ interface PricingResult {
     baseAnnual: number;
     addonsAnnual: number;
     subscriptionAnnual: number;
-    monthlyPayment: number;
+    subscriptionMonthly: number;
     implementation: number;
-    firstYearAnnual: number;
-    firstYearMonthly: number;
+    firstYearTotal: number;
+    altPeriodAmount: number;
 }
 
 function calcPricing(
     tier: SensorTier,
+    billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
 ): PricingResult {
@@ -58,11 +59,20 @@ function calcPricing(
     const addonsRate = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + a.rate, 0);
     const addonsAnnual = Math.round(baseAnnual * addonsRate);
     const subscriptionAnnual = baseAnnual + addonsAnnual;
-    const monthlyPayment = Math.round((subscriptionAnnual * MONTHLY_SURCHARGE) / 12);
+    const subscriptionMonthly = Math.round((subscriptionAnnual * MONTHLY_SURCHARGE) / 12);
     const implementation = nodes * IMPL_COST_PER_NODE;
-    const firstYearAnnual = subscriptionAnnual + implementation;
-    const firstYearMonthly = Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation;
-    return { baseAnnual, addonsAnnual, subscriptionAnnual, monthlyPayment, implementation, firstYearAnnual, firstYearMonthly };
+
+    // firstYearTotal and altPeriodAmount depend on billing mode:
+    // annual selected → primary = annual, alt = annual/12
+    // monthly selected → primary = monthly×12 (with surcharge), alt = monthly
+    const firstYearTotal = billing === "annual"
+        ? subscriptionAnnual + implementation
+        : Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation;
+    const altPeriodAmount = billing === "annual"
+        ? Math.round(subscriptionAnnual / 12)
+        : subscriptionMonthly;
+
+    return { baseAnnual, addonsAnnual, subscriptionAnnual, subscriptionMonthly, implementation, firstYearTotal, altPeriodAmount };
 }
 
 function fmt(n: number) {
@@ -72,6 +82,7 @@ function fmt(n: number) {
 function buildPrefillMessage(
     lang: "es" | "en",
     tier: SensorTier,
+    billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
     result: PricingResult,
@@ -82,31 +93,37 @@ function buildPrefillMessage(
         const addonsLine = activeList.length
             ? activeList.map(a => texts.es[a.labelKey]).join(", ")
             : "Solo visualización base";
+        const billingLabel = billing === "annual" ? "Anual" : "Mensual";
+        const primaryAmount = billing === "annual"
+            ? `${fmt(result.firstYearTotal)} €/año (${fmt(result.altPeriodAmount)} €/mes)`
+            : `${fmt(result.altPeriodAmount)} €/mes (${fmt(result.firstYearTotal)} €/año)`;
         return [
             "Solicitud de presupuesto ForNet:",
             `- Sensores: ${tier} sensores`,
+            `- Facturación: ${billingLabel}`,
             `- Módulos activos: ${addonsLine}`,
             `- Nodos / IPs: ${nodes}`,
-            `- Suscripción anual: ${fmt(result.subscriptionAnnual)} €/año`,
-            `- Suscripción mensual: ${fmt(result.monthlyPayment)} €/mes`,
+            `- Coste suscripción: ${primaryAmount}`,
             `- Implementación (único): ${fmt(result.implementation)} €`,
-            `- Total primer año (anual): ${fmt(result.firstYearAnnual)} €`,
-            `- Total primer año (mensual): ${fmt(result.firstYearMonthly)} €`,
+            `- Total primer año estimado: ${fmt(result.firstYearTotal)} €`,
         ].join("\n");
     } else {
         const addonsLine = activeList.length
             ? activeList.map(a => texts.en[a.labelKey]).join(", ")
             : "Base visualization only";
+        const billingLabel = billing === "annual" ? "Annual" : "Monthly";
+        const primaryAmount = billing === "annual"
+            ? `${fmt(result.firstYearTotal)} €/year (${fmt(result.altPeriodAmount)} €/month)`
+            : `${fmt(result.altPeriodAmount)} €/month (${fmt(result.firstYearTotal)} €/year)`;
         return [
             "ForNet pricing request:",
             `- Sensors: ${tier} sensors`,
+            `- Billing: ${billingLabel}`,
             `- Active modules: ${addonsLine}`,
             `- Nodes / IPs: ${nodes}`,
-            `- Annual subscription: ${fmt(result.subscriptionAnnual)} €/year`,
-            `- Monthly subscription: ${fmt(result.monthlyPayment)} €/month`,
+            `- Subscription cost: ${primaryAmount}`,
             `- Implementation (one-time): ${fmt(result.implementation)} €`,
-            `- First year total (annual): ${fmt(result.firstYearAnnual)} €`,
-            `- First year total (monthly): ${fmt(result.firstYearMonthly)} €`,
+            `- Estimated first year total: ${fmt(result.firstYearTotal)} €`,
         ].join("\n");
     }
 }
@@ -118,7 +135,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
     const [activeAddons, setActiveAddons] = useState<Set<AddonKey>>(new Set());
     const [nodes, setNodes] = useState(1);
 
-    const result = calcPricing(tier, activeAddons, nodes);
+    const result = calcPricing(tier, billing, activeAddons, nodes);
 
     function toggleAddon(key: AddonKey) {
         setActiveAddons(prev => {
@@ -129,7 +146,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
     }
 
     function handleCTA() {
-        const msg = buildPrefillMessage(lang, tier, activeAddons, nodes, result);
+        const msg = buildPrefillMessage(lang, tier, billing, activeAddons, nodes, result);
         onRequestQuote(msg);
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
     }
@@ -236,8 +253,10 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <div className="pricing-summary-row">
                                     <div>
                                         <div>{t.pricing_addons_label}</div>
-                                        <div className="row-label">
-                                            {ADDONS.filter(a => activeAddons.has(a.key)).map(a => t[a.labelKey]).join(", ")}
+                                        <div className="row-label" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                            {ADDONS.filter(a => activeAddons.has(a.key)).map(a => (
+                                                <span key={a.key}>· {t[a.labelKey]}</span>
+                                            ))}
                                         </div>
                                     </div>
                                     <span className="amount">+{fmt(result.addonsAnnual)} €/año</span>
@@ -252,25 +271,20 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <span className="amount">{fmt(result.implementation)} € · {t.pricing_onetime}</span>
                             </div>
 
-                            <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div style={{ marginTop: 12, borderTop: "2px solid var(--orange)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 4 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                                    <span style={{ fontSize: "0.85rem", color: "#aaa" }}>{t.pricing_billing_annual}</span>
-                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>{fmt(result.subscriptionAnnual)} €/año</span>
+                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label}</span>
+                                    <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--orange)" }}>
+                                        {billing === "annual" ? `${fmt(result.firstYearTotal)} €/año` : `${fmt(result.altPeriodAmount)} €/mes`}
+                                    </span>
                                 </div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                                    <span style={{ fontSize: "0.85rem", color: "#aaa" }}>{t.pricing_billing_monthly}</span>
-                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>{fmt(result.monthlyPayment)} €/mes</span>
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: 12, borderTop: "2px solid var(--orange)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label} ({t.pricing_billing_annual})</span>
-                                    <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--orange)" }}>{fmt(result.firstYearAnnual)} €</span>
-                                </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label} ({t.pricing_billing_monthly})</span>
-                                    <span style={{ fontSize: "1.2rem", fontWeight: 600, color: "var(--orange-soft)" }}>{fmt(result.firstYearMonthly)} €</span>
+                                    <span style={{ fontSize: "0.75rem", color: "#666" }}>
+                                        {billing === "annual" ? t.pricing_billing_monthly : t.pricing_billing_annual}
+                                    </span>
+                                    <span style={{ fontSize: "0.95rem", fontWeight: 500, color: "#888" }}>
+                                        {billing === "annual" ? `${fmt(result.altPeriodAmount)} €/mes` : `${fmt(result.firstYearTotal)} €/año`}
+                                    </span>
                                 </div>
                             </div>
 
