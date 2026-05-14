@@ -188,7 +188,7 @@
   font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .header-nav {
     display: none;
   }

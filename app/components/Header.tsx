@@ -17,7 +17,7 @@ export default function Header() {
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") setOpen(false);
         };
-        const mql = window.matchMedia("(min-width: 641px)");
+        const mql = window.matchMedia("(min-width: 901px)");
         const onResize = (e: MediaQueryListEvent) => {
             if (e.matches) setOpen(false);
         };
