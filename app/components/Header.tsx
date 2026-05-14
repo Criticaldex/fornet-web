@@ -58,6 +58,7 @@ export default function Header() {
                             ["#home", t.nav_home],
                             ["#modules", t.nav_modules],
                             ["#benefits", t.nav_benefits],
+                            ["#pricing", t.nav_pricing],
                             ["#contact", t.nav_contact],
                         ] as [string, string][]
                     ).map(([href, label]) => (

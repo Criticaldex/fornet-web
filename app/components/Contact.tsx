@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLang } from "../context/LangContext";
 import FadeIn from "./FadeIn";
 
-export default function Contact() {
+export default function Contact({ prefillMessage = "" }: { prefillMessage?: string }) {
     const { t } = useLang();
     const [status, setStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+    const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        if (prefillMessage) {
+            setMessage(prefillMessage);
+            setStatus("idle");
+        }
+    }, [prefillMessage]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -16,7 +24,7 @@ export default function Contact() {
             email: (form.elements.namedItem("email") as HTMLInputElement).value.trim(),
             company: (form.elements.namedItem("company") as HTMLInputElement).value.trim(),
             role: (form.elements.namedItem("role") as HTMLInputElement).value.trim(),
-            message: (form.elements.namedItem("message") as HTMLTextAreaElement).value.trim(),
+            message: message.trim(),
         };
 
         setStatus("sending");
@@ -29,6 +37,7 @@ export default function Contact() {
             const json = await res.json();
             if (json.success) {
                 setStatus("ok");
+                setMessage("");
                 form.reset();
             } else {
                 setStatus("error");
@@ -57,7 +66,14 @@ export default function Contact() {
                             <input name="company" type="text" placeholder={t.contact_company} required />
                             <input name="role" type="text" placeholder={t.contact_role} />
                         </div>
-                        <textarea name="message" placeholder={t.contact_message} rows={6} required />
+                        <textarea
+                            name="message"
+                            placeholder={t.contact_message}
+                            rows={6}
+                            required
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                        />
 
                         <button type="submit" className="btn primary" disabled={status === "sending"}>
                             {status === "sending" ? "..." : t.cta_contact}
