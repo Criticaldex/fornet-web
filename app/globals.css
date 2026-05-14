@@ -88,6 +88,11 @@
 /* =====================
    Mobile menu
 ===================== */
+.header-nav {
+  display: flex;
+  gap: 40px;
+}
+
 .mobile-menu-toggle {
   display: none;
   background: transparent;

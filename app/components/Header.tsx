@@ -73,8 +73,6 @@ export default function Header() {
                             position: "absolute",
                             left: "50%",
                             transform: "translateX(-50%)",
-                            display: "flex",
-                            gap: 40,
                         }}
                     >
                         {links.map(([href, label]) => (
