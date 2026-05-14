@@ -90,8 +90,9 @@
 ===================== */
 .header-nav {
   display: flex;
-  gap: 40px;
+  gap: clamp(16px, 2vw, 40px);
   justify-self: center;
+  min-width: 0;
 }
 
 .mobile-menu-toggle {
@@ -189,7 +190,7 @@
   font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .header-nav {
     display: none;
   }
