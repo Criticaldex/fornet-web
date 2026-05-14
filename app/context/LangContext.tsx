@@ -1,0 +1,132 @@
+"use client";
+
+import { createContext, useContext, useState } from "react";
+
+type Lang = "es" | "en";
+
+export const texts = {
+    es: {
+        nav_home: "Inicio",
+        nav_modules: "Productos",
+        nav_benefits: "Beneficios",
+        nav_contact: "Contacto",
+        hero_title: "La plataforma integral para el control y análisis de la producción industrial.",
+        hero_subtitle: "Convierte los datos de tu producción en control, análisis y decisiones inteligentes.",
+        cta_demo: "Solicita una demo gratuita",
+        modules_title: "Nuestros productos",
+        module_1_title: "Visualización de datos",
+        module_1_desc: "Conexión directa con PLCs para la monitorización, trazabilidad y análisis en tiempo real e históricos de la producción.",
+        module_2_title: "Interacción con maquinaria",
+        module_2_desc: "Envío de comandos y programas a máquinas de forma remota y segura.",
+        module_3_title: "Análisis avanzado",
+        module_3_desc: "Integración de Business Intelligence para KPIs y mejora continua.",
+        module_4_title: "Informes automáticos",
+        module_4_desc: "Generación y envío automático de informes periódicos sobre el estado y rendimiento de la producción.",
+        module_5_title: "Viewer",
+        module_5_desc: "Visualización rápida e interactiva de datos, resultados y estados de planta en tiempo real.",
+        carousel_title: "Nuestra plataforma en imágenes",
+        carousel_subtitle: "Descubre todas las funcionalidades de ForNet",
+        benefits_title: "Beneficios",
+        benefit_1: "Integración única",
+        sub_benefit_1: "Conexión directa con PLCs y sistemas industriales existentes.",
+        benefit_2: "Personalización total",
+        sub_benefit_2: "Adaptado a cada proceso productivo y rol operativo en un entorno user-friendly.",
+        benefit_3: "Mayor competitividad",
+        sub_benefit_3: "Optimiza recursos, reduce ineficiencias y maximiza el rendimiento productivo.",
+        benefit_4: "Toma de decisiones",
+        sub_benefit_4: "Análisis avanzados que facilitan decisiones rápidas y seguras.",
+        video_title: "Conoce ForNet en acción",
+        video_desc: "Descubre cómo ForNet conecta, analiza y transforma los datos de producción en información útil para la toma de decisiones.",
+        values_title: "Valores que nos definen",
+        values_1: "Innovación",
+        sub_values_1: "Aplicamos tecnología avanzada para transformar datos industriales en valor real para nuestros clientes.",
+        values_2: "Responsabilidad",
+        sub_values_2: "Diseñamos soluciones fiables, seguras y pensadas para entornos productivos reales y exigentes.",
+        values_3: "Coherencia",
+        sub_values_3: "Alineamos tecnología, producto y servicio para cumplir exactamente lo que prometemos.",
+        contact_title: "Solicita una demo gratuita",
+        contact_desc: "Cuéntanos tu caso y te mostramos cómo ForNet puede ayudarte.",
+        contact_name: "Nombre",
+        contact_email: "Email",
+        contact_company: "Empresa",
+        contact_role: "Cargo",
+        contact_message: "Describe brevemente tu proyecto o necesidad",
+        cta_contact: "Enviar mensaje",
+    },
+    en: {
+        nav_home: "Home",
+        nav_modules: "Products",
+        nav_benefits: "Benefits",
+        nav_contact: "Contact",
+        hero_title: "The integrated platform for industrial production control and analytics.",
+        hero_subtitle: "Turn your production data into control, analysis and smart decisions.",
+        cta_demo: "Request a demo for free",
+        modules_title: "Our products",
+        module_1_title: "Data visualization",
+        module_1_desc: "Direct connection to PLCs for production monitoring, traceability in real-time and historical analysis.",
+        module_2_title: "Machine interaction",
+        module_2_desc: "Remote and secure control and signaling of industrial machines.",
+        module_3_title: "Advanced analytics",
+        module_3_desc: "Business Intelligence integration for KPIs and continuous improvement.",
+        module_4_title: "Automatic reports",
+        module_4_desc: "Automatic generation and delivery of periodic reports on production status and performance.",
+        module_5_title: "Viewer",
+        module_5_desc: "Fast and interactive visualization of data, results and plant status in real time.",
+        carousel_title: "Our platform in images",
+        carousel_subtitle: "Discover all ForNet features",
+        benefits_title: "Benefits",
+        benefit_1: "Total integration",
+        sub_benefit_1: "Direct connection with existing PLCs and industrial systems.",
+        benefit_2: "Total customization",
+        sub_benefit_2: "Adapted to each production process and operational role in a user-friendly environment.",
+        benefit_3: "Competitiveness",
+        sub_benefit_3: "Optimize resources, reduce inefficiencies and maximize production performance.",
+        benefit_4: "Data-driven decisions",
+        sub_benefit_4: "Advanced analytics that enable fast and confident decision-making.",
+        video_title: "See ForNet in action",
+        video_desc: "Discover how ForNet connects, analyzes and transforms production data into useful information for decision-making.",
+        values_title: "Values that define us",
+        values_1: "Innovation",
+        sub_values_1: "We apply advanced technology to turn industrial data into real value for our clients.",
+        values_2: "Responsibility",
+        sub_values_2: "We design reliable and secure solutions built for real, demanding production environments.",
+        values_3: "Coherence",
+        sub_values_3: "We align technology, product and service to deliver exactly what we promise.",
+        contact_title: "Request a demo for free",
+        contact_desc: "Tell us about your case and we will show you how ForNet can help you.",
+        contact_name: "Name",
+        contact_email: "Email",
+        contact_company: "Company",
+        contact_role: "Role",
+        contact_message: "Briefly describe your project or need",
+        cta_contact: "Send message",
+    },
+} as const;
+
+export type TextKey = keyof typeof texts.es;
+type Texts = typeof texts[Lang];
+
+interface LangContextValue {
+    lang: Lang;
+    t: Texts;
+    toggleLang: () => void;
+}
+
+const LangContext = createContext<LangContextValue | null>(null);
+
+export function LangProvider({ children }: { children: React.ReactNode }) {
+    const [lang, setLang] = useState<Lang>("es");
+    const toggleLang = () => setLang((l) => (l === "es" ? "en" : "es"));
+
+    return (
+        <LangContext.Provider value={{ lang, t: texts[lang], toggleLang }}>
+            {children}
+        </LangContext.Provider>
+    );
+}
+
+export function useLang() {
+    const ctx = useContext(LangContext);
+    if (!ctx) throw new Error("useLang must be used within LangProvider");
+    return ctx;
+}

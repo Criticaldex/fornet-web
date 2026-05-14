@@ -1,0 +1,24 @@
+"use client";
+
+import { useLang } from "../context/LangContext";
+
+export default function Hero() {
+    const { t } = useLang();
+
+    return (
+        <section id="home" className="hero">
+            <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
+                <h1>{t.hero_title}</h1>
+                <p>{t.hero_subtitle}</p>
+                <div className="hero-cta">
+                    <button
+                        className="btn primary"
+                        onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                    >
+                        {t.cta_demo}
+                    </button>
+                </div>
+            </div>
+        </section>
+    );
+}
