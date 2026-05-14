@@ -34,7 +34,7 @@ export default function Carousel() {
 
     return (
         <section className="carousel-section">
-            <div style={{ width: "90%", maxWidth: 1500, margin: "auto", textAlign: "center" }}>
+            <div className="section-container" style={{ textAlign: "center" }}>
                 <h2 className="carousel-title">{t.carousel_title}</h2>
                 <p className="carousel-subtitle">{t.carousel_subtitle}</p>
             </div>
@@ -58,14 +58,14 @@ export default function Carousel() {
                     <button
                         className="carousel-btn carousel-btn--prev"
                         onClick={() => resetAuto(current - 1)}
-                        aria-label="Previous"
+                        aria-label={t.carousel_prev}
                     >
                         &#8592;
                     </button>
                     <button
                         className="carousel-btn carousel-btn--next"
                         onClick={() => resetAuto(current + 1)}
-                        aria-label="Next"
+                        aria-label={t.carousel_next}
                     >
                         &#8594;
                     </button>

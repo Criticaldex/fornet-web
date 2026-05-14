@@ -27,15 +27,7 @@ export default function Home() {
                 <Pricing onRequestQuote={setPrefillMessage} />
                 <Contact prefillMessage={prefillMessage} />
             </main>
-            <footer
-                style={{
-                    background: "#000",
-                    textAlign: "center",
-                    padding: "20px",
-                    fontSize: "0.85rem",
-                    color: "#fff",
-                }}
-            >
+            <footer className="footer-bar">
                 <p>© ForNet 2026</p>
             </footer>
         </>

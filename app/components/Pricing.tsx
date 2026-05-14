@@ -150,7 +150,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
 
     return (
         <section id="pricing" className="pricing-section">
-            <div style={{ width: "90%", maxWidth: 1500, margin: "auto", textAlign: "center" }}>
+            <div className="section-container" style={{ textAlign: "center" }}>
                 <h2 className="section-title">{t.pricing_title}</h2>
                 <p style={{ color: "#aaa", fontSize: "1rem" }}>{t.pricing_subtitle}</p>
 
@@ -218,7 +218,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <button
                                     onClick={() => setNodes(n => Math.max(MIN_NODES, n - 1))}
                                     disabled={nodes <= MIN_NODES}
-                                    aria-label="Reducir nodos"
+                                    aria-label={t.pricing_nodes_decrease}
                                 >
                                     −
                                 </button>
@@ -226,7 +226,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <button
                                     onClick={() => setNodes(n => Math.min(MAX_NODES, n + 1))}
                                     disabled={nodes >= MAX_NODES}
-                                    aria-label="Aumentar nodos"
+                                    aria-label={t.pricing_nodes_increase}
                                 >
                                     +
                                 </button>

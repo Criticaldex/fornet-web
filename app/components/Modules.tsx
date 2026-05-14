@@ -17,8 +17,8 @@ export default function Modules() {
     const { t } = useLang();
 
     return (
-        <section id="modules" style={{ padding: "90px 0" }}>
-            <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
+        <section id="modules" className="section-pad">
+            <div className="section-container" style={{ textAlign: "center" }}>
                 <h2 className="section-title">{t.modules_title}</h2>
                 <div className="cards">
                     {modules.map((mod) => (

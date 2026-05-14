@@ -79,6 +79,12 @@ export const texts = {
         pricing_onetime: "único",
         pricing_first_year_label: "Total primer año estimado",
         pricing_cta: "Solicitar presupuesto",
+        nav_menu_open: "Abrir menú",
+        nav_menu_close: "Cerrar menú",
+        pricing_nodes_decrease: "Reducir nodos",
+        pricing_nodes_increase: "Aumentar nodos",
+        carousel_prev: "Anterior",
+        carousel_next: "Siguiente",
     },
     en: {
         nav_home: "Home",
@@ -154,6 +160,12 @@ export const texts = {
         pricing_onetime: "one-time",
         pricing_first_year_label: "Estimated first year total",
         pricing_cta: "Request a quote",
+        nav_menu_open: "Open menu",
+        nav_menu_close: "Close menu",
+        pricing_nodes_decrease: "Decrease nodes",
+        pricing_nodes_increase: "Increase nodes",
+        carousel_prev: "Previous",
+        carousel_next: "Next",
     },
 } as const;
 

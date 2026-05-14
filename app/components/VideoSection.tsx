@@ -7,11 +7,8 @@ export default function VideoSection() {
     const { t } = useLang();
 
     return (
-        <section className="video-inline" style={{ padding: "90px 0" }}>
-            <div
-                style={{ width: "90%", maxWidth: 1500, margin: "auto" }}
-                className="video-grid"
-            >
+        <section className="video-inline section-pad">
+            <div className="section-container video-grid">
                 <FadeIn className="video-text">
                     <h2 className="section-title" style={{ marginBottom: 16 }}>{t.video_title}</h2>
                     <p>{t.video_desc}</p>

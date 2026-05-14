@@ -50,21 +50,58 @@ export default function Contact({ prefillMessage = "" }: { prefillMessage?: stri
     return (
         <section
             id="contact"
-            style={{ padding: "90px 0", background: "#0d0d0d", textAlign: "center" }}
+            className="section-pad"
+            style={{ background: "#0d0d0d", textAlign: "center" }}
         >
-            <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
+            <div className="section-container" style={{ textAlign: "center" }}>
                 <h2 className="section-title" style={{ marginBottom: 16 }}>{t.contact_title}</h2>
                 <p style={{ color: "#f5f5f5", fontSize: "1rem" }}>{t.contact_desc}</p>
 
                 <FadeIn>
                     <form className="contact-form" onSubmit={handleSubmit}>
                         <div className="form-row">
-                            <input name="name" type="text" placeholder={t.contact_name} required />
-                            <input name="email" type="email" placeholder={t.contact_email} required />
+                            <input
+                                name="name"
+                                type="text"
+                                placeholder={t.contact_name}
+                                required
+                                inputMode="text"
+                                autoComplete="name"
+                                autoCapitalize="words"
+                                enterKeyHint="next"
+                            />
+                            <input
+                                name="email"
+                                type="email"
+                                placeholder={t.contact_email}
+                                required
+                                inputMode="email"
+                                autoComplete="email"
+                                autoCapitalize="none"
+                                spellCheck={false}
+                                enterKeyHint="next"
+                            />
                         </div>
                         <div className="form-row">
-                            <input name="company" type="text" placeholder={t.contact_company} required />
-                            <input name="role" type="text" placeholder={t.contact_role} />
+                            <input
+                                name="company"
+                                type="text"
+                                placeholder={t.contact_company}
+                                required
+                                inputMode="text"
+                                autoComplete="organization"
+                                autoCapitalize="words"
+                                enterKeyHint="next"
+                            />
+                            <input
+                                name="role"
+                                type="text"
+                                placeholder={t.contact_role}
+                                inputMode="text"
+                                autoComplete="organization-title"
+                                autoCapitalize="words"
+                                enterKeyHint="next"
+                            />
                         </div>
                         <textarea
                             name="message"
@@ -73,6 +110,10 @@ export default function Contact({ prefillMessage = "" }: { prefillMessage?: stri
                             required
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            inputMode="text"
+                            autoComplete="off"
+                            autoCapitalize="sentences"
+                            enterKeyHint="send"
                         />
 
                         <button type="submit" className="btn primary" disabled={status === "sending"}>
