@@ -13,6 +13,7 @@ interface AddonConfig {
     key: AddonKey;
     icon: string;
     labelKey: TextKey;
+    descKey: TextKey;
     rate: number;
 }
 
@@ -27,13 +28,13 @@ const SENSOR_PRICES: Record<SensorTier, number> = {
 const SENSOR_TIERS: SensorTier[] = [10, 50, 100, 200, 500];
 
 const ADDONS: AddonConfig[] = [
-    { key: "powerbi",  icon: "fa-solid fa-chart-pie",     labelKey: "pricing_addon_powerbi",  rate: 0.40 },
-    { key: "mqtt",     icon: "fa-solid fa-network-wired", labelKey: "pricing_addon_mqtt",     rate: 0.25 },
-    { key: "reports",  icon: "fa-solid fa-file-pdf",      labelKey: "pricing_addon_reports",  rate: 0.20 },
-    { key: "viewer",   icon: "fa-solid fa-cube",          labelKey: "pricing_addon_viewer",   rate: 0.25 },
+    { key: "powerbi",  icon: "fa-solid fa-chart-pie",     labelKey: "pricing_addon_powerbi",  descKey: "pricing_addon_powerbi_desc",  rate: 0.40 },
+    { key: "mqtt",     icon: "fa-solid fa-network-wired", labelKey: "pricing_addon_mqtt",     descKey: "pricing_addon_mqtt_desc",     rate: 0.25 },
+    { key: "reports",  icon: "fa-solid fa-file-pdf",      labelKey: "pricing_addon_reports",  descKey: "pricing_addon_reports_desc",  rate: 0.20 },
+    { key: "viewer",   icon: "fa-solid fa-cube",          labelKey: "pricing_addon_viewer",   descKey: "pricing_addon_viewer_desc",   rate: 0.25 },
 ];
 
-const IMPL_COST_PER_NODE = 2000;
+const IMPL_COST_PER_NODE = 3000;
 const MONTHLY_SURCHARGE  = 1.15;
 const MIN_NODES = 1;
 const MAX_NODES = 20;
@@ -42,15 +43,14 @@ interface PricingResult {
     baseAnnual: number;
     addonsAnnual: number;
     subscriptionAnnual: number;
-    subscriptionDisplay: number;
+    monthlyPayment: number;
     implementation: number;
-    firstYearTotal: number;
-    isMonthly: boolean;
+    firstYearAnnual: number;
+    firstYearMonthly: number;
 }
 
 function calcPricing(
     tier: SensorTier,
-    billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
 ): PricingResult {
@@ -58,15 +58,11 @@ function calcPricing(
     const addonsRate = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + a.rate, 0);
     const addonsAnnual = Math.round(baseAnnual * addonsRate);
     const subscriptionAnnual = baseAnnual + addonsAnnual;
-    const isMonthly = billing === "monthly";
-    const subscriptionDisplay = isMonthly
-        ? Math.round((subscriptionAnnual * MONTHLY_SURCHARGE) / 12)
-        : subscriptionAnnual;
+    const monthlyPayment = Math.round((subscriptionAnnual * MONTHLY_SURCHARGE) / 12);
     const implementation = nodes * IMPL_COST_PER_NODE;
-    const firstYearTotal = isMonthly
-        ? Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation
-        : subscriptionAnnual + implementation;
-    return { baseAnnual, addonsAnnual, subscriptionAnnual, subscriptionDisplay, implementation, firstYearTotal, isMonthly };
+    const firstYearAnnual = subscriptionAnnual + implementation;
+    const firstYearMonthly = Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation;
+    return { baseAnnual, addonsAnnual, subscriptionAnnual, monthlyPayment, implementation, firstYearAnnual, firstYearMonthly };
 }
 
 function fmt(n: number) {
@@ -76,7 +72,6 @@ function fmt(n: number) {
 function buildPrefillMessage(
     lang: "es" | "en",
     tier: SensorTier,
-    billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
     result: PricingResult,
@@ -87,33 +82,31 @@ function buildPrefillMessage(
         const addonsLine = activeList.length
             ? activeList.map(a => texts.es[a.labelKey]).join(", ")
             : "Solo visualización base";
-        const billingLabel = billing === "annual" ? "Anual" : "Mensual";
-        const subLabel = billing === "annual" ? "€/año" : "€/mes";
         return [
             "Solicitud de presupuesto ForNet:",
             `- Sensores: ${tier} sensores`,
-            `- Facturación: ${billingLabel}`,
             `- Módulos activos: ${addonsLine}`,
             `- Nodos / IPs: ${nodes}`,
-            `- Coste suscripción: ${fmt(result.subscriptionDisplay)} ${subLabel}`,
+            `- Suscripción anual: ${fmt(result.subscriptionAnnual)} €/año`,
+            `- Suscripción mensual: ${fmt(result.monthlyPayment)} €/mes`,
             `- Implementación (único): ${fmt(result.implementation)} €`,
-            `- Total primer año estimado: ${fmt(result.firstYearTotal)} €`,
+            `- Total primer año (anual): ${fmt(result.firstYearAnnual)} €`,
+            `- Total primer año (mensual): ${fmt(result.firstYearMonthly)} €`,
         ].join("\n");
     } else {
         const addonsLine = activeList.length
             ? activeList.map(a => texts.en[a.labelKey]).join(", ")
             : "Base visualization only";
-        const billingLabel = billing === "annual" ? "Annual" : "Monthly";
-        const subLabel = billing === "annual" ? "€/year" : "€/month";
         return [
             "ForNet pricing request:",
             `- Sensors: ${tier} sensors`,
-            `- Billing: ${billingLabel}`,
             `- Active modules: ${addonsLine}`,
             `- Nodes / IPs: ${nodes}`,
-            `- Subscription cost: ${fmt(result.subscriptionDisplay)} ${subLabel}`,
+            `- Annual subscription: ${fmt(result.subscriptionAnnual)} €/year`,
+            `- Monthly subscription: ${fmt(result.monthlyPayment)} €/month`,
             `- Implementation (one-time): ${fmt(result.implementation)} €`,
-            `- Estimated first year total: ${fmt(result.firstYearTotal)} €`,
+            `- First year total (annual): ${fmt(result.firstYearAnnual)} €`,
+            `- First year total (monthly): ${fmt(result.firstYearMonthly)} €`,
         ].join("\n");
     }
 }
@@ -125,7 +118,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
     const [activeAddons, setActiveAddons] = useState<Set<AddonKey>>(new Set());
     const [nodes, setNodes] = useState(1);
 
-    const result = calcPricing(tier, billing, activeAddons, nodes);
+    const result = calcPricing(tier, activeAddons, nodes);
 
     function toggleAddon(key: AddonKey) {
         setActiveAddons(prev => {
@@ -136,14 +129,10 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
     }
 
     function handleCTA() {
-        const msg = buildPrefillMessage(lang, tier, billing, activeAddons, nodes, result);
+        const msg = buildPrefillMessage(lang, tier, activeAddons, nodes, result);
         onRequestQuote(msg);
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
     }
-
-    const subLabel = result.isMonthly ? "€/mes" : "€/año";
-    const subLabelEn = result.isMonthly ? "€/month" : "€/year";
-    const currentSubLabel = lang === "es" ? subLabel : subLabelEn;
 
     return (
         <section id="pricing" className="pricing-section">
@@ -200,6 +189,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                     >
                                         <i className={`${addon.icon} addon-icon`} />
                                         <span className="addon-name">{t[addon.labelKey]}</span>
+                                        <span className="addon-desc">{t[addon.descKey]}</span>
                                         <span className="addon-rate">+{Math.round(addon.rate * 100)}%</span>
                                     </button>
                                 ))}
@@ -262,20 +252,26 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <span className="amount">{fmt(result.implementation)} € · {t.pricing_onetime}</span>
                             </div>
 
-                            <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                                    <span style={{ fontSize: "0.85rem", color: "#aaa" }}>
-                                        {result.isMonthly ? t.pricing_billing_monthly : t.pricing_billing_annual}
-                                    </span>
-                                    <span style={{ fontSize: "1.2rem", fontWeight: 700, color: "#fff" }}>
-                                        {fmt(result.subscriptionDisplay)} {currentSubLabel}
-                                    </span>
+                            <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 8 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                                    <span style={{ fontSize: "0.85rem", color: "#aaa" }}>{t.pricing_billing_annual}</span>
+                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>{fmt(result.subscriptionAnnual)} €/año</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                                    <span style={{ fontSize: "0.85rem", color: "#aaa" }}>{t.pricing_billing_monthly}</span>
+                                    <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>{fmt(result.monthlyPayment)} €/mes</span>
                                 </div>
                             </div>
 
-                            <div className="pricing-summary-total">
-                                <span className="label">{t.pricing_first_year_label}</span>
-                                <span className="total-amount">{fmt(result.firstYearTotal)} €</span>
+                            <div style={{ marginTop: 12, borderTop: "2px solid var(--orange)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label} ({t.pricing_billing_annual})</span>
+                                    <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--orange)" }}>{fmt(result.firstYearAnnual)} €</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label} ({t.pricing_billing_monthly})</span>
+                                    <span style={{ fontSize: "1.2rem", fontWeight: 600, color: "var(--orange-soft)" }}>{fmt(result.firstYearMonthly)} €</span>
+                                </div>
                             </div>
 
                             <button
