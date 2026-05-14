@@ -13,7 +13,7 @@ export default function VideoSection() {
                 className="video-grid"
             >
                 <FadeIn className="video-text">
-                    <h2 style={{ fontSize: "2.5rem", marginBottom: 16 }}>{t.video_title}</h2>
+                    <h2 className="section-title" style={{ marginBottom: 16 }}>{t.video_title}</h2>
                     <p>{t.video_desc}</p>
                 </FadeIn>
 

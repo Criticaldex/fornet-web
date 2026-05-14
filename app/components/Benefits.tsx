@@ -17,7 +17,7 @@ export default function Benefits() {
     return (
         <section id="benefits" style={{ padding: "90px 0" }}>
             <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
-                <h2 style={{ fontSize: "2.5rem", marginBottom: 40 }}>{t.benefits_title}</h2>
+                <h2 className="section-title">{t.benefits_title}</h2>
                 <div className="benefits-grid">
                     {benefits.map((b) => (
                         <FadeIn key={b.titleKey} className="benefit-card">

@@ -44,7 +44,7 @@ export default function Contact() {
             style={{ padding: "90px 0", background: "#0d0d0d", textAlign: "center" }}
         >
             <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
-                <h2 style={{ fontSize: "2.5rem", marginBottom: 16 }}>{t.contact_title}</h2>
+                <h2 className="section-title" style={{ marginBottom: 16 }}>{t.contact_title}</h2>
                 <p style={{ color: "#f5f5f5", fontSize: "1rem" }}>{t.contact_desc}</p>
 
                 <FadeIn>
@@ -65,11 +65,11 @@ export default function Contact() {
 
                         {status === "ok" && (
                             <p style={{ color: "#4caf50", marginTop: 12 }}>
-                                Mensaje enviado correctamente.
+                                {t.contact_ok}
                             </p>
                         )}
                         {status === "error" && (
-                            <p style={{ color: "#f44336", marginTop: 12 }}>Error al enviar. Inténtalo de nuevo.</p>
+                            <p style={{ color: "#f44336", marginTop: 12 }}>{t.contact_error}</p>
                         )}
                     </form>
                 </FadeIn>

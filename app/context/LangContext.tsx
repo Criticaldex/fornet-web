@@ -52,6 +52,9 @@ export const texts = {
         contact_role: "Cargo",
         contact_message: "Describe brevemente tu proyecto o necesidad",
         cta_contact: "Enviar mensaje",
+        contact_ok: "Mensaje enviado correctamente.",
+        contact_error: "Error al enviar. Inténtalo de nuevo.",
+        hero_badge: "Industria 4.0",
     },
     en: {
         nav_home: "Home",
@@ -100,6 +103,9 @@ export const texts = {
         contact_role: "Role",
         contact_message: "Briefly describe your project or need",
         cta_contact: "Send message",
+        contact_ok: "Message sent successfully.",
+        contact_error: "Failed to send. Please try again.",
+        hero_badge: "Industry 4.0",
     },
 } as const;
 

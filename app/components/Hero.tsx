@@ -8,6 +8,7 @@ export default function Hero() {
     return (
         <section id="home" className="hero">
             <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
+                <span className="hero-badge">{t.hero_badge}</span>
                 <h1>{t.hero_title}</h1>
                 <p>{t.hero_subtitle}</p>
                 <div className="hero-cta">

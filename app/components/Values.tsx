@@ -15,7 +15,7 @@ export default function Values() {
     return (
         <section style={{ padding: "90px 0", background: "#424242" }}>
             <div style={{ width: "90%", maxWidth: 1500, margin: "auto", fontSize: "1.5rem", textAlign: "center" }}>
-                <h2 style={{ fontSize: "2.5rem", marginBottom: 40 }}>{t.values_title}</h2>
+                <h2 className="section-title">{t.values_title}</h2>
                 <div className="values-grid">
                     {values.map((v) => (
                         <FadeIn key={v.titleKey} className="value-item">

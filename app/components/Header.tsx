@@ -38,12 +38,13 @@ export default function Header() {
                         style={{ height: 48, width: "auto" }}
                         priority
                     />
-                    <span style={{ color: "#fff", fontFamily: "Helvetica, Arial, sans-serif", fontWeight: 700, fontSize: "2rem", letterSpacing: "-0.02em" }}>
+                    <span style={{ color: "#fff", fontFamily: "'DejaVu Sans', Helvetica, Arial, sans-serif", fontWeight: 700, fontSize: "2rem", letterSpacing: "-0.02em" }}>
                         ForNet
                     </span>
                 </div>
 
                 <nav
+                    className="header-nav"
                     style={{
                         position: "absolute",
                         left: "50%",
@@ -62,6 +63,7 @@ export default function Header() {
                     ).map(([href, label]) => (
                         <button
                             key={href}
+                            className="header-nav-link"
                             onClick={() => document.getElementById(href.replace("#", ""))?.scrollIntoView({ behavior: "smooth" })}
                             style={{
                                 background: "none",
