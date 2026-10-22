@@ -29,10 +29,10 @@ const SENSOR_PRICES: Record<SensorTier, number> = {
 const SENSOR_TIERS: SensorTier[] = [10, 50, 100, 200, 500];
 
 const ADDONS: AddonConfig[] = [
-    { key: "powerbi",  icon: "fa-solid fa-chart-pie",     labelKey: "pricing_addon_powerbi",  descKey: "pricing_addon_powerbi_desc",  rate: 0.40 },
-    { key: "mqtt",     icon: "fa-solid fa-network-wired", labelKey: "pricing_addon_mqtt",     descKey: "pricing_addon_mqtt_desc",     rate: 0.25 },
-    { key: "reports",  icon: "fa-solid fa-file-pdf",      labelKey: "pricing_addon_reports",  descKey: "pricing_addon_reports_desc",  rate: 0.20 },
-    { key: "viewer",   icon: "fa-solid fa-cube",          labelKey: "pricing_addon_viewer",   descKey: "pricing_addon_viewer_desc",   rate: 0.25 },
+    { key: "powerbi",  icon: "fa-solid fa-chart-pie",     labelKey: "pricing_addon_powerbi",  descKey: "pricing_addon_powerbi_desc",  rate: 0.30 },
+    { key: "mqtt",     icon: "fa-solid fa-network-wired", labelKey: "pricing_addon_mqtt",     descKey: "pricing_addon_mqtt_desc",     rate: 0.30 },
+    { key: "reports",  icon: "fa-solid fa-file-pdf",      labelKey: "pricing_addon_reports",  descKey: "pricing_addon_reports_desc",  rate: 0.10 },
+    { key: "viewer",   icon: "fa-solid fa-cube",          labelKey: "pricing_addon_viewer",   descKey: "pricing_addon_viewer_desc",   rate: 0.30 },
 ];
 
 const USER_TIERS: UserTier[] = [50, 100, 200, 500];
@@ -61,6 +61,10 @@ interface PricingResult {
     altAmount: number;
 }
 
+function addonPrice(baseAnnual: number, addon: AddonConfig) {
+    return Math.round(baseAnnual * addon.rate);
+}
+
 function calcPricing(
     tier: SensorTier,
     users: UserTier,
@@ -69,8 +73,7 @@ function calcPricing(
     nodes: number,
 ): PricingResult {
     const baseAnnual = SENSOR_PRICES[tier];
-    const addonsRate = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + a.rate, 0);
-    const addonsAnnual = Math.round(baseAnnual * addonsRate);
+    const addonsAnnual = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + addonPrice(baseAnnual, a), 0);
     const usersAnnual = Math.round(baseAnnual * USER_RATES[users]);
     const subscriptionAnnual = baseAnnual + addonsAnnual + usersAnnual;
     const implementation = nodes * IMPL_COST_PER_NODE;
@@ -290,16 +293,19 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 </div>
                             )}
 
-                            {result.addonsAnnual > 0 && (
-                                <div className="pricing-summary-row">
+                            {ADDONS.filter(a => activeAddons.has(a.key)).map(a => (
+                                <div key={a.key} className="pricing-summary-row">
                                     <div>
-                                        <div>{t.pricing_addons_label}</div>
-                                        <div className="row-label" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                            {ADDONS.filter(a => activeAddons.has(a.key)).map(a => (
-                                                <span key={a.key}>· {t[a.labelKey]}</span>
-                                            ))}
-                                        </div>
+                                        <div>{t[a.labelKey]}</div>
+                                        <div className="row-label">+{Math.round(a.rate * 100)}%</div>
                                     </div>
+                                    <span className="amount">+{fmt(addonPrice(result.baseAnnual, a))} €/año</span>
+                                </div>
+                            ))}
+
+                            {activeAddons.size > 0 && (
+                                <div className="pricing-summary-row">
+                                    <div>{t.pricing_addons_label}</div>
                                     <span className="amount">+{fmt(result.addonsAnnual)} €/año</span>
                                 </div>
                             )}
