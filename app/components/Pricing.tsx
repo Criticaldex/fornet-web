@@ -6,6 +6,7 @@ import type { TextKey } from "../context/LangContext";
 import FadeIn from "./FadeIn";
 
 type SensorTier = 10 | 50 | 100 | 200 | 500;
+type UserTier = 50 | 100 | 200 | 500;
 type BillingMode = "annual" | "monthly";
 type AddonKey = "powerbi" | "mqtt" | "reports" | "viewer";
 
@@ -34,6 +35,16 @@ const ADDONS: AddonConfig[] = [
     { key: "viewer",   icon: "fa-solid fa-cube",          labelKey: "pricing_addon_viewer",   descKey: "pricing_addon_viewer_desc",   rate: 0.25 },
 ];
 
+const USER_TIERS: UserTier[] = [50, 100, 200, 500];
+
+// Surcharge on the base sensor price; up to 50 users are included.
+const USER_RATES: Record<UserTier, number> = {
+    50: 0,
+    100: 0.05,
+    200: 0.10,
+    500: 0.20,
+};
+
 const IMPL_COST_PER_NODE = 3000;
 const MONTHLY_SURCHARGE  = 1.15;
 const MIN_NODES = 1;
@@ -42,15 +53,17 @@ const MAX_NODES = 20;
 interface PricingResult {
     baseAnnual: number;
     addonsAnnual: number;
+    usersAnnual: number;
     subscriptionAnnual: number;
     implementation: number;
-    firstYearAnnual: number;
+    totalAnnual: number;
     mainAmount: number;
     altAmount: number;
 }
 
 function calcPricing(
     tier: SensorTier,
+    users: UserTier,
     billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
@@ -58,20 +71,22 @@ function calcPricing(
     const baseAnnual = SENSOR_PRICES[tier];
     const addonsRate = ADDONS.filter(a => activeAddons.has(a.key)).reduce((s, a) => s + a.rate, 0);
     const addonsAnnual = Math.round(baseAnnual * addonsRate);
-    const subscriptionAnnual = baseAnnual + addonsAnnual;
+    const usersAnnual = Math.round(baseAnnual * USER_RATES[users]);
+    const subscriptionAnnual = baseAnnual + addonsAnnual + usersAnnual;
     const implementation = nodes * IMPL_COST_PER_NODE;
 
-    // firstYearAnnual: total first year in €/year (with surcharge if monthly billing)
-    const firstYearAnnual = billing === "annual"
-        ? subscriptionAnnual + implementation
-        : Math.round(subscriptionAnnual * MONTHLY_SURCHARGE) + implementation;
+    // totalAnnual: recurring subscription in €/year (with surcharge if monthly billing).
+    // Implementation is a one-time fee and is NOT included.
+    const totalAnnual = billing === "annual"
+        ? subscriptionAnnual
+        : Math.round(subscriptionAnnual * MONTHLY_SURCHARGE);
 
     // mainAmount: shown big (period selected). altAmount: shown small (other period).
     // Symmetric within mode: main × 12 = alt (monthly), main / 12 = alt (annual).
-    const mainAmount = billing === "annual" ? firstYearAnnual : Math.round(firstYearAnnual / 12);
-    const altAmount  = billing === "annual" ? Math.round(firstYearAnnual / 12) : firstYearAnnual;
+    const mainAmount = billing === "annual" ? totalAnnual : Math.round(totalAnnual / 12);
+    const altAmount  = billing === "annual" ? Math.round(totalAnnual / 12) : totalAnnual;
 
-    return { baseAnnual, addonsAnnual, subscriptionAnnual, implementation, firstYearAnnual, mainAmount, altAmount };
+    return { baseAnnual, addonsAnnual, usersAnnual, subscriptionAnnual, implementation, totalAnnual, mainAmount, altAmount };
 }
 
 function fmt(n: number) {
@@ -81,6 +96,7 @@ function fmt(n: number) {
 function buildPrefillMessage(
     lang: "es" | "en",
     tier: SensorTier,
+    users: UserTier,
     billing: BillingMode,
     activeAddons: Set<AddonKey>,
     nodes: number,
@@ -98,12 +114,12 @@ function buildPrefillMessage(
         return [
             "Solicitud de presupuesto ForNet:",
             `- Sensores: ${tier} sensores`,
+            `- Usuarios: ${users}`,
             `- Facturación: ${billingLabel}`,
             `- Módulos activos: ${addonsLine}`,
             `- Nodos / IPs: ${nodes}`,
             `- Coste total: ${fmt(result.mainAmount)} ${mainUnit} (${fmt(result.altAmount)} ${altUnit})`,
-            `- Implementación incluida: ${fmt(result.implementation)} €`,
-            `- Total primer año estimado: ${fmt(result.firstYearAnnual)} €`,
+            `- Implementación (pago único): ${fmt(result.implementation)} €`,
         ].join("\n");
     } else {
         const addonsLine = activeList.length
@@ -115,12 +131,12 @@ function buildPrefillMessage(
         return [
             "ForNet pricing request:",
             `- Sensors: ${tier} sensors`,
+            `- Users: ${users}`,
             `- Billing: ${billingLabel}`,
             `- Active modules: ${addonsLine}`,
             `- Nodes / IPs: ${nodes}`,
             `- Total cost: ${fmt(result.mainAmount)} ${mainUnit} (${fmt(result.altAmount)} ${altUnit})`,
-            `- Implementation included: ${fmt(result.implementation)} €`,
-            `- Estimated first year total: ${fmt(result.firstYearAnnual)} €`,
+            `- Implementation (one-time): ${fmt(result.implementation)} €`,
         ].join("\n");
     }
 }
@@ -128,11 +144,12 @@ function buildPrefillMessage(
 export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: string) => void }) {
     const { t, lang } = useLang();
     const [tier, setTier] = useState<SensorTier>(50);
+    const [users, setUsers] = useState<UserTier>(50);
     const [billing, setBilling] = useState<BillingMode>("annual");
     const [activeAddons, setActiveAddons] = useState<Set<AddonKey>>(new Set());
     const [nodes, setNodes] = useState(1);
 
-    const result = calcPricing(tier, billing, activeAddons, nodes);
+    const result = calcPricing(tier, users, billing, activeAddons, nodes);
 
     function toggleAddon(key: AddonKey) {
         setActiveAddons(prev => {
@@ -143,7 +160,7 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
     }
 
     function handleCTA() {
-        const msg = buildPrefillMessage(lang, tier, billing, activeAddons, nodes, result);
+        const msg = buildPrefillMessage(lang, tier, users, billing, activeAddons, nodes, result);
         onRequestQuote(msg);
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
     }
@@ -170,6 +187,23 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                     <span className="tier-price">{fmt(SENSOR_PRICES[s])} €/año</span>
                                 </button>
                             ))}
+                        </div>
+
+                        {/* User tiers */}
+                        <div style={{ marginTop: 28 }}>
+                            <span className="pricing-section-label">{t.pricing_users_label}</span>
+                            <div className="pricing-tiers">
+                                {USER_TIERS.map(u => (
+                                    <button
+                                        key={u}
+                                        className={`pricing-tier-card${users === u ? " selected" : ""}`}
+                                        onClick={() => setUsers(u)}
+                                    >
+                                        <span className="tier-sensors">{u}</span>
+                                        <span className="tier-price">{USER_RATES[u] === 0 ? t.pricing_users_included : `+${Math.round(USER_RATES[u] * 100)}%`}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Billing toggle */}
@@ -246,6 +280,16 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 <span className="amount">{fmt(result.baseAnnual)} €/año</span>
                             </div>
 
+                            {result.usersAnnual > 0 && (
+                                <div className="pricing-summary-row">
+                                    <div>
+                                        <div>{t.pricing_users_row_label}</div>
+                                        <div className="row-label">{users} {t.pricing_users_unit}</div>
+                                    </div>
+                                    <span className="amount">+{fmt(result.usersAnnual)} €/año</span>
+                                </div>
+                            )}
+
                             {result.addonsAnnual > 0 && (
                                 <div className="pricing-summary-row">
                                     <div>
@@ -260,17 +304,9 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                 </div>
                             )}
 
-                            <div className="pricing-summary-row">
-                                <div>
-                                    <div>{t.pricing_implementation_label}</div>
-                                    <div className="row-label">{nodes} {nodes === 1 ? "nodo" : "nodos"} × €{fmt(IMPL_COST_PER_NODE)}</div>
-                                </div>
-                                <span className="amount">{fmt(result.implementation)} € · {t.pricing_onetime}</span>
-                            </div>
-
                             <div style={{ marginTop: 12, borderTop: "2px solid var(--orange)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 4 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_first_year_label}</span>
+                                    <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{t.pricing_total_label}</span>
                                     <span style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--orange)" }}>
                                         {fmt(result.mainAmount)} {billing === "annual" ? "€/año" : "€/mes"}
                                     </span>
@@ -284,6 +320,16 @@ export default function Pricing({ onRequestQuote }: { onRequestQuote: (msg: stri
                                     </span>
                                 </div>
                             </div>
+
+                            <div className="pricing-summary-row" style={{ marginTop: 16 }}>
+                                <div>
+                                    <div>{t.pricing_implementation_label}</div>
+                                    <div className="row-label">{nodes} {nodes === 1 ? "nodo" : "nodos"} × €{fmt(IMPL_COST_PER_NODE)}</div>
+                                </div>
+                                <span className="amount">{fmt(result.implementation)} € · {t.pricing_onetime}</span>
+                            </div>
+
+                            <p className="pricing-node-hint" style={{ marginTop: 4, textAlign: "left" }}>{t.pricing_impl_note}</p>
 
                             <button
                                 className="btn primary"
