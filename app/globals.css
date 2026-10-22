@@ -57,9 +57,7 @@
    Header shell
 ===================== */
 .header-shell {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #000;
   position: fixed;
   width: 100%;
   top: 0;
@@ -134,9 +132,7 @@
   position: fixed;
   inset: 0;
   z-index: 9;
-  background: rgba(0, 0, 0, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #000;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
