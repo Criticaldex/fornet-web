@@ -19,11 +19,11 @@ interface AddonConfig {
 }
 
 const SENSOR_PRICES: Record<SensorTier, number> = {
-    10: 600,
-    50: 3000,
-    100: 5500,
-    200: 9000,
-    500: 20000,
+    10: 720,
+    50: 3600,
+    100: 6600,
+    200: 10800,
+    500: 24000,
 };
 
 const SENSOR_TIERS: SensorTier[] = [10, 50, 100, 200, 500];
